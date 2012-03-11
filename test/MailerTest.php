@@ -88,18 +88,26 @@ class MailerTest extends PHPUnit_Framework_TestCase
 						return;
 					}
 				}
+
+				// HOOK: include Swift classes
+				if (class_exists('Swift', false))
+				{
+					Swift::autoload($strClassName);
+					return;
+				}
 			});
 
 			require('system/initialize.php');
 
-			require('plugins/swiftmailer/classes/Swift/DependencyContainer.php');
-			require('plugins/swiftmailer/classes/Swift/Preferences.php');
+			require('plugins/swiftmailer/classes/Swift.php');
 			require('plugins/swiftmailer/swift_init.php');
 			require(__DIR__ . '/../src/system/modules/mailer/MailerConfig.php');
 			require(__DIR__ . '/../src/system/modules/mailer/Mailer.php');
 			require(__DIR__ . '/../src/system/modules/mailer/SwiftMailer.php');
 			require(__DIR__ . '/../src/system/modules/mailer/Mail.php');
 		}
+
+		require(__DIR__ . '/../src/system/modules/mailer/config/config.php');
 
 		// set some variables
 		$_SESSION['FE_DATA']                              = '';
@@ -213,6 +221,8 @@ class MailerTest extends PHPUnit_Framework_TestCase
 
 	public function testCreateMail()
 	{
+		echo "Testing Mail generation\n";
+
 		$objConfig = MailerConfig::getDefault();
 
 		$objMail = new Mail();
@@ -253,5 +263,66 @@ class MailerTest extends PHPUnit_Framework_TestCase
 			</html>',
 			'[[embed::f94ddaacd5fdaf9c3b8b8e1b5e2b1431]]' => 'system/themes/default/images/visible.gif'
 		), $arrContent);
+	}
+
+	public function testSendMail()
+	{
+		echo "Testing Mail transmission\n";
+
+		$objConfig = new MailerConfig();
+		if (get_cfg_var('unittest_use_smtp')) {
+			$objConfig->setUseSMTP(true);
+
+			if (get_cfg_var('unittest_smtp_host') !== false) {
+				$objConfig->setSmtpHost(get_cfg_var('unittest_smtp_host'));
+			}
+			if (get_cfg_var('unittest_smtp_port') !== false) {
+				$objConfig->setSmtpPort(get_cfg_var('unittest_smtp_port'));
+			}
+			if (get_cfg_var('unittest_smtp_user') !== false) {
+				$objConfig->setSmtpUser(get_cfg_var('unittest_smtp_user'));
+			}
+			if (get_cfg_var('unittest_smtp_password') !== false) {
+				$objConfig->setSmtpPassword(get_cfg_var('unittest_smtp_password'));
+			}
+			if (get_cfg_var('unittest_smtp_encryption') !== false) {
+				$objConfig->setSmtpEncryption(get_cfg_var('unittest_smtp_encryption'));
+			}
+		}
+		$objConfig->setEmbedImages(true);
+		$objConfig->setEmbedImageSize(1000000); // 1 MB
+		$objConfig->setImageHref('http://st2.contao.org');
+		$objConfig->setBaseHref('http://demo.contao.org');
+
+		$varTo = get_cfg_var('unittest_email');
+
+		if (!$varTo) {
+			$this->fail('Define a recipient mail with "-demail=bob@example.com" to test mail sending!');
+			return;
+		}
+
+		$objMail = new Mail();
+		$objMail->addHeader('X-Mailer', 'I am a funny test mailer!');
+		$objMail->setSender('maildaemon@example.com');
+		$objMail->setSenderName('Mail Daemon');
+		$objMail->setReplyTo('reply@example.com');
+		$objMail->setReplyToName('Support example.com');
+		$objMail->setPriority(Mail::PRIORITY_HIGHEST);
+		$objMail->setSubject('I am a test mail');
+		$objMail->setText('I am a test :-)');
+		$objMail->setHtml('<html>
+				<body>
+					I am a test :-)<br>
+					With an existing image: <img src="system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With a non existing image: <img src="this/images/does/not/exists.jpg" width="16" height="16"><br>
+					With an external image: <img src="http://demo.contao.org/system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With a static image: <img src="http://st2.contao.org/system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With an email link: <a href="mailto:alex@example.com">alex@example.com</a><br>
+					With a relative link: <a href="index.html">index.html</a><br>
+				</body>
+			</html>');
+
+		$objMailer = Mailer::getMailer($objConfig);
+		$this->assertTrue($objMailer->send($objMail, $varTo));
 	}
 }
