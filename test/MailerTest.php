@@ -46,13 +46,22 @@ class MailerTest extends PHPUnit_Framework_TestCase
 {
 	protected function setUp()
 	{
+		$_SERVER['HTTP_HOST']             = 'www.example.com';
+		$_SERVER['HTTP_X_FORWARDED_HOST'] = '';
+		$_SERVER['SSL_SESSION_ID']        = '';
+		$_SERVER['HTTPS']                 = 'no';
+		$_SERVER['ORIG_SCRIPT_NAME']      = 'index.php';
+		$_SERVER['HTTP_ACCEPT_LANGUAGE']  = 'en-en';
+		$_SERVER['REQUEST_URI']           = '/';
+
 		// init contao config
 		if (!defined('TL_ROOT')) {
 			define('TL_MODE', 'FE');
 
 			// custom autoloader is required, because __autoload is not called
 			// after an spl_autoloader is registered!
-			spl_autoload_register(function($strClassName) {
+			spl_autoload_register(function($strClassName)
+			{
 				/**
 				 * Thanks to Leo Feyer <http://www.contao.org>
 				 * @see Contao __autoload function
@@ -60,8 +69,7 @@ class MailerTest extends PHPUnit_Framework_TestCase
 				$strLibrary = TL_ROOT . '/system/libraries/' . $strClassName . '.php';
 
 				// Check for libraries first
-				if (file_exists($strLibrary))
-				{
+				if (file_exists($strLibrary)) {
 					include_once($strLibrary);
 					return;
 				}
@@ -69,39 +77,20 @@ class MailerTest extends PHPUnit_Framework_TestCase
 				// Then check the modules folder
 				foreach (scan(TL_ROOT . '/system/modules/') as $strFolder)
 				{
-					if (substr($strFolder, 0, 1) == '.')
-					{
+					if (substr($strFolder, 0, 1) == '.') {
 						continue;
 					}
 
 					$strModule = TL_ROOT . '/system/modules/' . $strFolder . '/' . $strClassName . '.php';
 
-					if (file_exists($strModule))
-					{
+					if (file_exists($strModule)) {
 						include_once($strModule);
 						return;
 					}
 				}
 			});
 
-			$_SERVER['ORIG_SCRIPT_NAME'] = '';
-			$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'en-en';
 			require('system/initialize.php');
-			$_SESSION['FE_DATA'] = '';
-
-			// set some variables used by MailerConfig
-			$GLOBALS['objPage'] = new stdClass();
-			$GLOBALS['objPage']->adminEmail = 'webmaster@example.com';
-			$GLOBALS['TL_CONFIG']['adminEmail'] = 'admin@example.com';
-			$GLOBALS['TL_CONFIG']['mailer_embed_images'] = true;
-			$GLOBALS['TL_CONFIG']['mailer_embed_images_size'] = 4096;
-			$GLOBALS['TL_CONFIG']['mailer_implementation'] = 'Implementation';
-			$GLOBALS['TL_CONFIG']['useSMTP'] = true;
-			$GLOBALS['TL_CONFIG']['smtpHost'] = 'mx.example.com';
-			$GLOBALS['TL_CONFIG']['smtpUser'] = 'mail';
-			$GLOBALS['TL_CONFIG']['smtpPassword'] = 'passwd';
-			$GLOBALS['TL_CONFIG']['smtpEnc'] = 'ssl';
-			$GLOBALS['TL_CONFIG']['smtpPort'] = 465;
 
 			require('plugins/swiftmailer/classes/Swift/DependencyContainer.php');
 			require('plugins/swiftmailer/classes/Swift/Preferences.php');
@@ -111,6 +100,25 @@ class MailerTest extends PHPUnit_Framework_TestCase
 			require(__DIR__ . '/../src/system/modules/mailer/SwiftMailer.php');
 			require(__DIR__ . '/../src/system/modules/mailer/Mail.php');
 		}
+
+		// set some variables
+		$_SESSION['FE_DATA']                              = '';
+		$GLOBALS['objPage']                               = new stdClass();
+		$GLOBALS['objPage']->adminEmail                   = 'webmaster@example.com';
+		$GLOBALS['objPage']->staticFiles                  = 'http://static.example.com';
+		$GLOBALS['objPage']->dns                          = 'www.example.com';
+		$GLOBALS['TL_CONFIG']['adminEmail']               = 'admin@example.com';
+		$GLOBALS['TL_CONFIG']['rewriteURL']               = true;
+		$GLOBALS['TL_CONFIG']['websitePath']              = '';
+		$GLOBALS['TL_CONFIG']['mailer_embed_images']      = true;
+		$GLOBALS['TL_CONFIG']['mailer_embed_images_size'] = 4096;
+		$GLOBALS['TL_CONFIG']['mailer_implementation']    = 'Implementation';
+		$GLOBALS['TL_CONFIG']['useSMTP']                  = true;
+		$GLOBALS['TL_CONFIG']['smtpHost']                 = 'mx.example.com';
+		$GLOBALS['TL_CONFIG']['smtpUser']                 = 'mail';
+		$GLOBALS['TL_CONFIG']['smtpPassword']             = 'passwd';
+		$GLOBALS['TL_CONFIG']['smtpEnc']                  = 'ssl';
+		$GLOBALS['TL_CONFIG']['smtpPort']                 = 465;
 	}
 
 	public function testDefaultMailerConfig()
@@ -167,12 +175,12 @@ class MailerTest extends PHPUnit_Framework_TestCase
 
 	public function testMailerConfigSettersReturnThis()
 	{
-		echo "Testing MailerConfig::set* return $this\n";
+		echo "Testing MailerConfig::set* return \$this\n";
 
 		$objConfig = new MailerConfig();
 
 		$arrMethods = get_class_methods('MailerConfig');
-		$arrSetter = preg_grep('#^set#', $arrMethods);
+		$arrSetter  = preg_grep('#^set#', $arrMethods);
 
 		foreach ($arrSetter as $strSetter) {
 			echo "  - MailerConfig::" . $strSetter . "()\n";
@@ -186,12 +194,12 @@ class MailerTest extends PHPUnit_Framework_TestCase
 
 	public function testMailSettersReturnThis()
 	{
-		echo "Testing MailerConfig::set* return $this\n";
+		echo "Testing MailerConfig::set* return \$this\n";
 
 		$objConfig = new Mail();
 
 		$arrMethods = get_class_methods('Mail');
-		$arrSetter = preg_grep('#^set#', $arrMethods);
+		$arrSetter  = preg_grep('#^set#', $arrMethods);
 
 		foreach ($arrSetter as $strSetter) {
 			echo "  - Mail::" . $strSetter . "()\n";
@@ -201,5 +209,49 @@ class MailerTest extends PHPUnit_Framework_TestCase
 				'Setter MailerConfig::' . $strSetter . ' does not return $this!'
 			);
 		}
+	}
+
+	public function testCreateMail()
+	{
+		$objConfig = MailerConfig::getDefault();
+
+		$objMail = new Mail();
+		$objMail->addHeader('X-Mailer', 'I am a funny test mailer!');
+		$objMail->setSender('maildaemon@example.com');
+		$objMail->setSenderName('Mail Daemon');
+		$objMail->setReplyTo('reply@example.com');
+		$objMail->setReplyToName('Support example.com');
+		$objMail->setPriority(Mail::PRIORITY_HIGHEST);
+		$objMail->setSubject('I am a test mail');
+		$objMail->setText('I am a test :-)');
+		$objMail->setHtml('<html>
+				<body>
+					I am a test :-)<br>
+					With an existing image: <img src="system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With a non existing image: <img src="this/images/does/not/exists.jpg" width="16" height="16"><br>
+					With an external image: <img src="http://demo.contao.org/system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With a static image: <img src="http://static.example.com/system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With an email link: <a href="mailto:alex@example.com">alex@example.com</a><br>
+					With a relative link: <a href="index.html">index.html</a><br>
+				</body>
+			</html>');
+
+		$arrContent = $objMail->getContents($objConfig);
+
+		$this->assertEquals(array(
+			'text'                                        => 'I am a test :-)',
+			'html'                                        => '<html>
+				<body>
+					I am a test :-)<br>
+					With an existing image: <img src="[[embed::f94ddaacd5fdaf9c3b8b8e1b5e2b1431]]" width="17" height="16"><br>
+					With a non existing image: <img src="http://static.example.com/this/images/does/not/exists.jpg" width="16" height="16"><br>
+					With an external image: <img src="http://demo.contao.org/system/themes/default/images/visible.gif" width="17" height="16"><br>
+					With a static image: <img src="[[embed::f94ddaacd5fdaf9c3b8b8e1b5e2b1431]]" width="17" height="16"><br>
+					With an email link: <a href="mailto:alex@example.com">alex@example.com</a><br>
+					With a relative link: <a href="http://www.example.com/index.html">index.html</a><br>
+				</body>
+			</html>',
+			'[[embed::f94ddaacd5fdaf9c3b8b8e1b5e2b1431]]' => 'system/themes/default/images/visible.gif'
+		), $arrContent);
 	}
 }
