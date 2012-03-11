@@ -49,6 +49,7 @@ Is called before the Swift_Transport object is created.
 Can be used to create a custom transport.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerCreateTransport'][] = array('MyClass', 'hookSwiftMailerCreateTransport');
 
 class MyClass
@@ -74,6 +75,7 @@ class MyClass
 Is called after the Swift_Transport object is created.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport'][] = array('MyClass', 'hookSwiftMailerConfigureTransport');
 
 class MyClass
@@ -96,6 +98,7 @@ Is called before the Swift_Mailer object is created.
 Can be used to create a custom mailer.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerCreateMailer'][] = array('MyClass', 'hookSwiftMailerCreateMailer');
 
 class MyClass
@@ -121,6 +124,7 @@ class MyClass
 Is called after the Swift_Mailer object is created.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer'][] = array('MyClass', 'hookSwiftMailerConfigureMailer');
 
 class MyClass
@@ -143,6 +147,7 @@ Is called before the Swift_Message object is created.
 Can be used to create a custom message.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerCreateMessage'][] = array('MyClass', 'hookSwiftMailerCreateMessage');
 
 class MyClass
@@ -169,6 +174,7 @@ Is called if an attachment is added, that is not supported by the mailer framewo
 Can be used to make custom attachments.
 
 ```php
+<?php
 $GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment'][] = array('MyClass', 'hookSwiftMailerCreateAttachment');
 
 class MyMailAttachment extends MailAttachment
