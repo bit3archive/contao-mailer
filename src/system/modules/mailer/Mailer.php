@@ -44,6 +44,11 @@
  */
 abstract class Mailer extends System
 {
+	/**
+	 * @static
+	 * @param MailerConfig|null $config
+	 * @return Mailer
+	 */
 	public static function getMailer(MailerConfig $config = null)
 	{
 		if ($config === null) {

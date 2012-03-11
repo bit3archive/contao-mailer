@@ -84,7 +84,7 @@ class SwiftMailer extends Mailer
 		$this->setAttachments($objMessage, $objEmail);
 
 		// send the message
-		$this->sendMessage($objMessage, $objEmail, $varTo, $varCC, $varBCC);
+		return $this->sendMessage($objMessage, $objEmail, $varTo, $varCC, $varBCC);
 	}
 
 	protected function createMailer()
@@ -313,16 +313,16 @@ class SwiftMailer extends Mailer
 	 */
 	protected function sendMessage(Swift_Message $objMessage, Mail $objEmail, $varTo, $varCC, $varBCC)
 	{
-		$objMessage->setTo($this->compileRecipients($varTo));
+		$objMessage->setTo($this->compileRecipients(String::getInstance()->splitCsv($varTo)));
 
 		// set the copy recipients
 		if ($varCC) {
-			$objMessage->setCc($this->compileRecipients($varCC));
+			$objMessage->setCc($this->compileRecipients(String::getInstance()->splitCsv($varCC)));
 		}
 
 		// set the blind copy recipients
 		if ($varBCC) {
-			$objMessage->setBcc($this->compileRecipients($varBCC));
+			$objMessage->setBcc($this->compileRecipients(String::getInstance()->splitCsv($varBCC)));
 		}
 
 		$this->lastFailures = array();
@@ -339,11 +339,11 @@ class SwiftMailer extends Mailer
 			return false;
 		}
 
-		$arrCc  = $this->objMessage->getCc();
-		$arrBcc = $this->objMessage->getBcc();
+		$arrCc  = $objMessage->getCc();
+		$arrBcc = $objMessage->getBcc();
 
 		// Add a log entry
-		$strMessage = 'An e-mail has been sent to ' . implode(', ', array_keys($this->objMessage->getTo()));
+		$strMessage = 'An e-mail has been sent to ' . implode(', ', array_keys($objMessage->getTo()));
 
 		if (!empty($arrCc)) {
 			$strMessage .= ', CC to ' . implode(', ', array_keys($arrCc));
@@ -353,7 +353,7 @@ class SwiftMailer extends Mailer
 			$strMessage .= ', BCC to ' . implode(', ', array_keys($arrBcc));
 		}
 
-		log_message($strMessage, $this->strLogFile);
+		log_message($strMessage, $this->config->getLogFile());
 		return true;
 	}
 
@@ -375,7 +375,7 @@ class SwiftMailer extends Mailer
 		foreach ($arrRecipients as $varRecipients)
 		{
 			if (!is_array($varRecipients)) {
-				$varRecipients = $this->String->splitCsv($varRecipients);
+				$varRecipients = String::getInstance()->splitCsv($varRecipients);
 			}
 
 			// Support friendly name addresses and internationalized domain names
