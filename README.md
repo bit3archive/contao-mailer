@@ -25,6 +25,7 @@ and is developed in an API-driven layout.
 - support custom Mailer implementations
 - support enable or disable image embedding
 - support image embedding by size, bigger images are linked
+- auto absolutize relative hrefs
 - API-driven layout
 
 ## Why a new Mailer Framework, why not using Swift?
