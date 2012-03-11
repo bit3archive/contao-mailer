@@ -83,6 +83,11 @@ class MailerConfig extends System
 	/**
 	 * @var string
 	 */
+	protected $baseHref = '';
+
+	/**
+	 * @var string
+	 */
 	protected $implementation = 'swift';
 
 	/**
@@ -122,6 +127,8 @@ class MailerConfig extends System
 		'X-Mailer' => 'Contao Mailer by InfinitySoft <http://www.infinitysoft.de>'
 	);
 
+	protected $logFile = 'mailer.log';
+
 	/**
 	 * @var array
 	 */
@@ -142,15 +149,18 @@ class MailerConfig extends System
 		list($strSenderName, $strSender) = $objConfig->splitFriendlyName(isset($GLOBALS['objPage'])
 			? $GLOBALS['objPage']->adminEmail
 			: $GLOBALS['TL_CONFIG']['adminEmail']);
+		$strImageHref = isset($GLOBALS['objPage']) && $GLOBALS['objPage']->staticFiles
+			? $GLOBALS['objPage']->staticFiles . TL_PATH
+			: $objConfig->Environment->base;
+		$strBaseHref = isset($GLOBALS['objPage']) && $GLOBALS['objPage']->dns
+			? ($objConfig->Environment->ssl ? 'https://' : 'http://') . $GLOBALS['objPage']->dns . TL_PATH
+			: $objConfig->Environment->base;
 		$objConfig->setDefaultSender($strSender);
 		$objConfig->setDefaultSenderName($strSenderName);
 		$objConfig->setEmbedImages($GLOBALS['TL_CONFIG']['mailer_embed_images']);
 		$objConfig->setEmbedImageSize($GLOBALS['TL_CONFIG']['mailer_embed_images_size']);
-		$objConfig->setImageHref(isset($GLOBALS['objPage']) && $GLOBALS['objPage']->staticFiles
-			? ($objConfig->Environment->ssl
-				? str_replace('http://', 'https://', $GLOBALS['objPage']->staticFiles)
-				: $GLOBALS['objPage']->staticFiles)
-			: $objConfig->Environment->base);
+		$objConfig->setImageHref($strImageHref);
+		$objConfig->setBaseHref($strBaseHref);
 		$objConfig->setImplementation($GLOBALS['TL_CONFIG']['mailer_implementation']);
 		$objConfig->setUseSMTP($GLOBALS['TL_CONFIG']['useSMTP']);
 		$objConfig->setSmtpHost($GLOBALS['TL_CONFIG']['smtpHost']);
@@ -267,6 +277,8 @@ class MailerConfig extends System
 	 */
 	public function setImageHref($imageHref)
 	{
+		$imageHref = preg_replace('#/+$#', '', $imageHref);
+		$imageHref .= '/';
 		$this->imageHref = $imageHref;
 		return $this;
 	}
@@ -277,6 +289,25 @@ class MailerConfig extends System
 	public function getImageHref()
 	{
 		return $this->imageHref;
+	}
+
+	/**
+	 * @param string $baseHref
+	 */
+	public function setBaseHref($baseHref)
+	{
+		$baseHref = preg_replace('#/+$#', '', $baseHref);
+		$baseHref .= '/';
+		$this->baseHref = $baseHref;
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getBaseHref()
+	{
+		return $this->baseHref;
 	}
 
 	/**
@@ -446,5 +477,16 @@ class MailerConfig extends System
 	public function getAttachments()
 	{
 		return $this->attachments;
+	}
+
+	public function setLogFile($logFile)
+	{
+		$this->logFile = $logFile;
+		return $this;
+	}
+
+	public function getLogFile()
+	{
+		return $this->logFile;
 	}
 }

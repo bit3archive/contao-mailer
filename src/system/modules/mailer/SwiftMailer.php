@@ -49,6 +49,14 @@ class SwiftMailer extends Mailer
 	 */
 	protected $mailer;
 
+	/**
+	 * @var array
+	 */
+	protected $lastFailures = null;
+
+	/**
+	 * @param MailerConfig $config
+	 */
 	public function __construct(MailerConfig $config)
 	{
 		parent::__construct($config);
@@ -69,25 +77,22 @@ class SwiftMailer extends Mailer
 		// add the headers, email headers are more important than config headers
 		$this->setHeaders($objMessage, $objEmail);
 
-		// set the recipients
-		$this->setRecipients($objMessage, $objEmail, $varTo, $varCC, $varBCC);
+		// set content
+		$this->setContent($objMessage, $objEmail);
 
 		// set attachments
 		$this->setAttachments($objMessage, $objEmail);
 
-		// set content
-		$this->setContent($objMessage, $objEmail);
-
-		// TODO
+		// send the message
+		$this->sendMessage($objMessage, $objEmail, $varTo, $varCC, $varBCC);
 	}
 
 	protected function createMailer()
 	{
 		$objTransport = false;
-		$objMailer = false;
+		$objMailer    = false;
 
-		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateTransport']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateTransport']))
-		{
+		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateTransport']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateTransport'])) {
 			foreach ($GLOBALS['TL_HOOKS']['swiftMailerCreateTransport'] as $callback)
 			{
 				$this->import($callback[0]);
@@ -106,7 +111,8 @@ class SwiftMailer extends Mailer
 
 				// Encryption
 				if ($this->config->getSmtpEncryption() == MailerConfig::ENCRYPTION_SSL ||
-					$this->config->getSmtpEncryption() == MailerConfig::ENCRYPTION_TLS) {
+					$this->config->getSmtpEncryption() == MailerConfig::ENCRYPTION_TLS
+				) {
 					$objTransport->setEncryption($this->config->getSmtpEncryption());
 				}
 
@@ -124,8 +130,7 @@ class SwiftMailer extends Mailer
 			}
 		}
 
-		if (isset($GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport']))
-		{
+		if (isset($GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport'])) {
 			foreach ($GLOBALS['TL_HOOKS']['swiftMailerConfigureTransport'] as $callback)
 			{
 				$this->import($callback[0]);
@@ -133,8 +138,7 @@ class SwiftMailer extends Mailer
 			}
 		}
 
-		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateMailer']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateMailer']))
-		{
+		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateMailer']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateMailer'])) {
 			foreach ($GLOBALS['TL_HOOKS']['swiftMailerCreateMailer'] as $callback)
 			{
 				$this->import($callback[0]);
@@ -146,8 +150,7 @@ class SwiftMailer extends Mailer
 			$objMailer = Swift_Mailer::newInstance($objTransport);
 		}
 
-		if (isset($GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer']))
-		{
+		if (isset($GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer'])) {
 			foreach ($GLOBALS['TL_HOOKS']['swiftMailerConfigureMailer'] as $callback)
 			{
 				$this->import($callback[0]);
@@ -162,8 +165,7 @@ class SwiftMailer extends Mailer
 	{
 		$objMessage = false;
 
-		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateMessage']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateMessage']))
-		{
+		if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateMessage']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateMessage'])) {
 			foreach ($GLOBALS['TL_HOOKS']['swiftMailerCreateMessage'] as $callback)
 			{
 				$this->import($callback[0]);
@@ -185,7 +187,7 @@ class SwiftMailer extends Mailer
 			$this->config->getHeaders(),
 			$objEmail->getHeaders()
 		);
-		foreach ($arrHeaders as $header=>$content) {
+		foreach ($arrHeaders as $header=> $content) {
 			$objMessage->getHeaders()->addTextHeader($header, $content);
 		}
 
@@ -196,12 +198,12 @@ class SwiftMailer extends Mailer
 		$objMessage->setSubject($objEmail->getSubject());
 
 		// set sender
-		$strSender = ($objEmail->getSender() ? $objEmail->getSender() : $this->config->getDefaultSender());
+		$strSender     = ($objEmail->getSender() ? $objEmail->getSender() : $this->config->getDefaultSender());
 		$strSenderName = ($objEmail->getSenderName() ? $objEmail->getSenderName() : $this->config->getDefaultSenderName());
 		$objMessage->setFrom($strSender, $strSenderName);
 
 		// set reply to
-		$strReplyTo = ($objEmail->getReplyTo() ? $objEmail->getReplyTo() : $this->config->getDefaultReplyTo());
+		$strReplyTo     = ($objEmail->getReplyTo() ? $objEmail->getReplyTo() : $this->config->getDefaultReplyTo());
 		$strReplyToName = ($objEmail->getReplyToName() ? $objEmail->getReplyToName() : $this->config->getDefaultReplyToName());
 		if ($strReplyTo) {
 			$objMessage->setReplyTo($strReplyTo, $strReplyToName);
@@ -209,63 +211,6 @@ class SwiftMailer extends Mailer
 
 		// set priority
 		$objMessage->setPriority($objEmail->getPriority() ? $objEmail->getPriority() : $this->config->getDefaultPriority());
-	}
-
-	protected function setRecipients(Swift_Message $objMessage, Mail $objEmail, $varTo, $varCC, $varBCC)
-	{
-		$objMessage->setTo($this->compileRecipients($varTo));
-
-		// set the copy recipients
-		if ($varCC) {
-			$objMessage->setCc($this->compileRecipients($varCC));
-		}
-
-		// set the blind copy recipients
-		if ($varBCC) {
-			$objMessage->setBcc($this->compileRecipients($varBCC));
-		}
-	}
-
-	/**
-	 * Compile e-mail addresses from an array of (different) arguments
-	 *
-	 * Thanks to Leo Feyer <http://www.contao.org>.
-	 * @author     Leo Feyer <http://www.contao.org>
-	 * @see    Email class of the Contao Open Source CMS
-	 * @param array
-	 * @return array
-	 */
-	protected function compileRecipients($arrRecipients)
-	{
-		$arrReturn = array();
-
-		foreach ($arrRecipients as $varRecipients)
-		{
-			if (!is_array($varRecipients))
-			{
-				$varRecipients = $this->String->splitCsv($varRecipients);
-			}
-
-			// Support friendly name addresses and internationalized domain names
-			foreach ($varRecipients as $v)
-			{
-				list($strName, $strEmail) = $this->splitFriendlyName($v);
-
-				$strName = trim($strName, ' "');
-				$strEmail = $this->idnaEncodeEmail($strEmail);
-
-				if ($strName != '')
-				{
-					$arrReturn[$strEmail] = $strName;
-				}
-				else
-				{
-					$arrReturn[] = $strEmail;
-				}
-			}
-		}
-
-		return $arrReturn;
 	}
 
 	protected function setAttachments(Swift_Message $objMessage, Mail $objEmail)
@@ -303,8 +248,7 @@ class SwiftMailer extends Mailer
 		}
 
 		else {
-			if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment']))
-			{
+			if (isset($GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment']) && is_array($GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment'])) {
 				foreach ($GLOBALS['TL_HOOKS']['swiftMailerCreateAttachment'] as $callback)
 				{
 					$this->import($callback[0]);
@@ -326,10 +270,10 @@ class SwiftMailer extends Mailer
 
 	protected function setContent(Swift_Message $objMessage, Mail $objEmail)
 	{
-		$arrContent = $objEmail->getContent($this->config);
+		$arrContent = $objEmail->getContents($this->config);
 
 		$arrEmbedded = array();
-		foreach ($arrContent as $strKey=>$strPath) {
+		foreach ($arrContent as $strKey=> $strPath) {
 			if ($strKey == 'html' || $strKey == 'text') {
 				continue;
 			}
@@ -338,7 +282,7 @@ class SwiftMailer extends Mailer
 		}
 
 		if (isset($arrContent['html'])) {
-			foreach ($arrEmbedded as $strKey=>$strContentId) {
+			foreach ($arrEmbedded as $strKey=> $strContentId) {
 				$arrContent['html'] = str_replace($strKey, $strContentId, $arrContent['html']);
 			}
 
@@ -353,5 +297,113 @@ class SwiftMailer extends Mailer
 				$objMessage->setBody($arrContent['text'], 'text/plain');
 			}
 		}
+	}
+
+	/**
+	 * Thanks to Leo Feyer <http://www.contao.org>.
+	 * @see    Email class of the Contao Open Source CMS
+	 *
+	 * @param Swift_Message $objMessage
+	 * @param Mail $objEmail
+	 * @param $varTo
+	 * @param $varCC
+	 * @param $varBCC
+	 *
+	 * @return bool
+	 */
+	protected function sendMessage(Swift_Message $objMessage, Mail $objEmail, $varTo, $varCC, $varBCC)
+	{
+		$objMessage->setTo($this->compileRecipients($varTo));
+
+		// set the copy recipients
+		if ($varCC) {
+			$objMessage->setCc($this->compileRecipients($varCC));
+		}
+
+		// set the blind copy recipients
+		if ($varBCC) {
+			$objMessage->setBcc($this->compileRecipients($varBCC));
+		}
+
+		$this->lastFailures = array();
+
+		$intTransmitted = $this->mailer->send($objMessage, $objEmail);
+
+		// Log failures
+		if (!empty($this->lastFailures)) {
+			log_message('E-mail address rejected: ' . implode(', ', $this->lastFailures), $this->config->getLogFile());
+		}
+
+		// send message fails, if there are no recipients that receive them
+		if ($intTransmitted < 1) {
+			return false;
+		}
+
+		$arrCc  = $this->objMessage->getCc();
+		$arrBcc = $this->objMessage->getBcc();
+
+		// Add a log entry
+		$strMessage = 'An e-mail has been sent to ' . implode(', ', array_keys($this->objMessage->getTo()));
+
+		if (!empty($arrCc)) {
+			$strMessage .= ', CC to ' . implode(', ', array_keys($arrCc));
+		}
+
+		if (!empty($arrBcc)) {
+			$strMessage .= ', BCC to ' . implode(', ', array_keys($arrBcc));
+		}
+
+		log_message($strMessage, $this->strLogFile);
+		return true;
+	}
+
+	/**
+	 * Compile e-mail addresses from an array of (different) arguments
+	 *
+	 * Thanks to Leo Feyer <http://www.contao.org>.
+	 * @author     Leo Feyer <http://www.contao.org>
+	 * @see    Email class of the Contao Open Source CMS
+	 *
+	 * @param array
+	 *
+	 * @return array
+	 */
+	protected function compileRecipients($arrRecipients)
+	{
+		$arrReturn = array();
+
+		foreach ($arrRecipients as $varRecipients)
+		{
+			if (!is_array($varRecipients)) {
+				$varRecipients = $this->String->splitCsv($varRecipients);
+			}
+
+			// Support friendly name addresses and internationalized domain names
+			foreach ($varRecipients as $v)
+			{
+				list($strName, $strEmail) = $this->splitFriendlyName($v);
+
+				$strName  = trim($strName, ' "');
+				$strEmail = $this->idnaEncodeEmail($strEmail);
+
+				if ($strName != '') {
+					$arrReturn[$strEmail] = $strName;
+				}
+				else
+				{
+					$arrReturn[] = $strEmail;
+				}
+			}
+		}
+
+		return $arrReturn;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getLastFailures()
+	{
+		return $this->lastFailures;
 	}
 }

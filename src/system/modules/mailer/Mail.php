@@ -289,7 +289,7 @@ class Mail
 	 *
 	 * @return array
 	 */
-	public function getContent(MailerConfig $objConfig)
+	public function getContents(MailerConfig $objConfig)
 	{
 		$arrContent = array();
 
@@ -300,6 +300,7 @@ class Mail
 		if ($this->html) {
 			$arrContent['html'] = $this->getHtml();
 
+			// Check for internal images
 			$arrMatches = array();
 			preg_match_all(
 				'/(background|src)="([^"]+\.(jpe?g|png|gif|bmp|tiff?|swf))"/Ui',
@@ -310,33 +311,55 @@ class Mail
 			$strImageHref = $objConfig->getImageHref();
 
 			$arrSrcEmbeded = array();
-			// Check for internal images
 			foreach ($arrMatches as $url)
 			{
 				$strUrl = $url[2];
-				$strPath = str_replace(
-					array($strImageHref, Environment::getInstance()->base),
+				$strPath = preg_replace(
+					array(
+						'#' . preg_quote($strImageHref) . '/*#',
+						'#' . preg_quote(Environment::getInstance()->base) . '/*#'
+					),
 					'',
-					$url[2]
+					$strUrl
 				);
 
 				// skip replaced urls
-				if (isset($arrSrcEmbeded[$strUrl]))
+				if (isset($arrSrcEmbeded[$strUrl]) || isset($arrSrcEmbeded[$strPath]))
 				{
 					continue;
 				}
 
+				$arrReplace = array(
+					preg_quote($strUrl),
+					preg_quote($strPath),
+					preg_quote($strImageHref) . '/*' . preg_quote($strPath),
+					preg_quote(Environment::getInstance()->base) . '/*' . preg_quote($strPath),
+				);
+				foreach ($arrReplace as $i=>$strReplace) {
+					$arrReplace[$i] = '"' . $strReplace . '"';
+					$arrReplace[]   = "'" . $strReplace . "'";
+				}
+
 				// Embed the image if the URL is now relative
-				if (!preg_match('@^https?://@', $strPath) &&
+				if (!preg_match('@^\w+:@', $strPath) &&
 					file_exists(TL_ROOT . '/' . $strPath) &&
-					filesize($strPath) <= $objConfig->getEmbedImageSize()) {
-					$arrSrcEmbeded[$strPath] = '[[embed::' . md5($url[2]) . ']]';
+					filesize(TL_ROOT . '/' . $strPath) <= $objConfig->getEmbedImageSize()) {
+					$arrSrcEmbeded[$strUrl]  = '[[embed::' . md5($strUrl) . ']]';
+					$arrSrcEmbeded[$strPath] = '[[embed::' . md5($strUrl) . ']]';
 
 					$arrContent['html'] = preg_replace(
-						'#(background|src)=("' . preg_quote($url[2]) . '"|\'' . preg_quote($url[2]) . '\')#',
+						'#(background|src)=(' . implode('|', $arrReplace) . ')#',
 						'$1="' . $arrSrcEmbeded[$strPath] . '"',
 						$arrContent['html']
 					);
+				}
+				else if (!preg_match('@^\w+:@', $strUrl)) {
+					$arrContent['html'] = preg_replace(
+						'#(background|src)=(' . implode('|', $arrReplace) . ')#',
+						'$1="' . $strImageHref . $strUrl . '"',
+						$arrContent['html']
+					);
+					$arrSrcEmbeded[$strUrl] = false;
 				}
 				else {
 					$arrSrcEmbeded[$strUrl] = false;
@@ -347,6 +370,34 @@ class Mail
 				if ($strEmbedId !== false) {
 					$arrContent[$strEmbedId] = $strPath;
 				}
+			}
+
+			// check for non absolut hrefs
+			$arrMatches = array();
+			preg_match_all(
+				'/href=(?:"([^"]+)"|\'([^\']+)\')/Ui',
+				$arrContent['html'],
+				$arrMatches,
+				PREG_SET_ORDER
+			);
+			$strBaseHref = $objConfig->getBaseHref();
+
+			foreach ($arrMatches as $url)
+			{
+				$strUrl = isset($url[2]) ? $url[2] : $url[1];
+
+				if (isset($arrSrcEmbeded[$strUrl]) ||
+					preg_match('@^(\w+:|#)@', $strUrl)) {
+					continue;
+				}
+
+				$arrSrcEmbeded[$strUrl] = true;
+
+				$arrContent['html'] = preg_replace(
+					'#href=("' . preg_quote($strUrl) . '"|\'' . preg_quote($strUrl) . '\')#',
+					'href="' . $strBaseHref . $strUrl . '"',
+					$arrContent['html']
+				);
 			}
 		}
 
