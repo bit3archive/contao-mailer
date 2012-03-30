@@ -297,7 +297,7 @@ class MailerTest extends PHPUnit_Framework_TestCase
 		$varTo = get_cfg_var('unittest_email');
 
 		if (!$varTo) {
-			$this->fail('Define a recipient mail with "-demail=bob@example.com" to test mail sending!');
+			$this->markTestSkipped('Define a recipient mail with "-demail=bob@example.com" to test mail sending!');
 			return;
 		}
 
