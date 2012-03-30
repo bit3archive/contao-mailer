@@ -289,9 +289,11 @@ class SwiftMailer extends Mailer
 		}
 
 		if (isset($arrContent['html'])) {
-			foreach ($arrEmbedded as $strKey=> $strContentId) {
-				$arrContent['html'] = str_replace($strKey, $strContentId, $arrContent['html']);
-			}
+			$arrContent['html'] = str_replace(
+				array_keys($arrEmbedded),
+				$arrEmbedded,
+				$arrContent['html']
+			);
 
 			$objMessage->setBody($arrContent['html'], 'text/html');
 		}
