@@ -34,6 +34,13 @@
 
 
 /**
+ * Include SwiftMailer classes
+ */
+require_once(TL_ROOT . '/plugins/swiftmailer/classes/Swift.php');
+require_once(TL_ROOT . '/plugins/swiftmailer/swift_init.php');
+
+
+/**
  * Class Mailer
  *
  * A basic email that is just an email.
