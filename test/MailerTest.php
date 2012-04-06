@@ -32,7 +32,6 @@
  * @filesource
  */
 
-
 /**
  * Class MailerTest
  *
@@ -44,6 +43,21 @@
  */
 class MailerTest extends PHPUnit_Framework_TestCase
 {
+	// Unwind the error handler stack until we're back at the built-in error handler.
+	// We might want to export all of this into a abstract PHPUnit_Framework_TestCase_Contao base class
+	protected function resetPHPErrorHandling()
+	{
+		restore_exception_handler();
+		while (set_error_handler(create_function('$errno,$errstr', 'return false;'))) {
+			// Unset the error handler we just set.
+			restore_error_handler();
+			// Unset the previous error handler.
+			restore_error_handler();
+		}
+		// Restore the built-in error handler.
+		restore_error_handler();
+	}
+
 	protected function setUp()
 	{
 		$_SERVER['HTTP_HOST']             = 'www.example.com';
@@ -98,6 +112,8 @@ class MailerTest extends PHPUnit_Framework_TestCase
 			});
 
 			require('system/initialize.php');
+			// registered __exception() handler from contao confuses PHPUnit code coverage generating.
+			$this->resetPHPErrorHandling();
 
 			require('plugins/swiftmailer/classes/Swift.php');
 			require('plugins/swiftmailer/swift_init.php');
