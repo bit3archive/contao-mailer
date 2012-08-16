@@ -12,7 +12,7 @@ before_script:
   - wget https://github.com/contao/core/zipball/master -O contao.zip
   - mkdir contao
   - unzip -x contao.zip -d contao
-  - mv contao/contao-core-*.zip contao/core
+  - mv contao/contao-core-* contao/core
 
 # run tests from "test" directory
 script: phpunit -dinclude_path=".:/usr/share/php:/usr/share/php5:/usr/share/pear:./contao/core" test
