@@ -11,7 +11,7 @@ php:
 before_script:
   - wget https://github.com/contao/core/zipball/master -O contao.zip
   - mkdir contao
-  - unzip -x ../contao.zip -d contao
+  - unzip -x contao.zip -d contao
 
 # run tests from "test" directory
 script: phpunit -dinclude_path=".:/usr/share/pear:./contao" test
