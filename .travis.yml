@@ -15,4 +15,4 @@ before_script:
   - mv contao/contao-core-* contao/core
 
 # run tests from "test" directory
-script: phpunit -dinclude_path=".:/usr/share/php:/usr/share/php5:/usr/share/pear:./contao/core" test
+script: phpunit -dinclude_path="$(php -r 'echo ini_get("include_path") . ":contao/core";')" test
