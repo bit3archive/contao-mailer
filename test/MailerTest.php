@@ -58,6 +58,43 @@ class MailerTest extends PHPUnit_Framework_TestCase
 		restore_error_handler();
 	}
 
+	public function autoload($strClassName)
+	{
+		/**
+		 * Thanks to Leo Feyer <http://www.contao.org>
+		 * @see Contao __autoload function
+		 */
+		$strLibrary = TL_ROOT . '/system/libraries/' . $strClassName . '.php';
+
+		// Check for libraries first
+		if (file_exists($strLibrary)) {
+			include_once($strLibrary);
+			return;
+		}
+
+		// Then check the modules folder
+		foreach (scan(TL_ROOT . '/system/modules/') as $strFolder)
+		{
+			if (substr($strFolder, 0, 1) == '.') {
+				continue;
+			}
+
+			$strModule = TL_ROOT . '/system/modules/' . $strFolder . '/' . $strClassName . '.php';
+
+			if (file_exists($strModule)) {
+				include_once($strModule);
+				return;
+			}
+		}
+
+		// HOOK: include Swift classes
+		if (class_exists('Swift', false))
+		{
+			Swift::autoload($strClassName);
+			return;
+		}
+	}
+
 	protected function setUp()
 	{
 		$_SERVER['HTTP_HOST']             = 'www.example.com';
@@ -74,42 +111,7 @@ class MailerTest extends PHPUnit_Framework_TestCase
 
 			// custom autoloader is required, because __autoload is not called
 			// after an spl_autoloader is registered!
-			spl_autoload_register(function($strClassName)
-			{
-				/**
-				 * Thanks to Leo Feyer <http://www.contao.org>
-				 * @see Contao __autoload function
-				 */
-				$strLibrary = TL_ROOT . '/system/libraries/' . $strClassName . '.php';
-
-				// Check for libraries first
-				if (file_exists($strLibrary)) {
-					include_once($strLibrary);
-					return;
-				}
-
-				// Then check the modules folder
-				foreach (scan(TL_ROOT . '/system/modules/') as $strFolder)
-				{
-					if (substr($strFolder, 0, 1) == '.') {
-						continue;
-					}
-
-					$strModule = TL_ROOT . '/system/modules/' . $strFolder . '/' . $strClassName . '.php';
-
-					if (file_exists($strModule)) {
-						include_once($strModule);
-						return;
-					}
-				}
-
-				// HOOK: include Swift classes
-				if (class_exists('Swift', false))
-				{
-					Swift::autoload($strClassName);
-					return;
-				}
-			});
+			spl_autoload_register(array($this, 'autoload'));
 
 			require('system/initialize.php');
 			// registered __exception() handler from contao confuses PHPUnit code coverage generating.
