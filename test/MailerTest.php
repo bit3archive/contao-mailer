@@ -119,13 +119,13 @@ class MailerTest extends PHPUnit_Framework_TestCase
 
 			require('plugins/swiftmailer/classes/Swift.php');
 			require('plugins/swiftmailer/swift_init.php');
-			require(__DIR__ . '/../src/system/modules/mailer/MailerConfig.php');
-			require(__DIR__ . '/../src/system/modules/mailer/Mailer.php');
-			require(__DIR__ . '/../src/system/modules/mailer/SwiftMailer.php');
-			require(__DIR__ . '/../src/system/modules/mailer/Mail.php');
+			require(dirname(__FILE__) . '/../src/system/modules/mailer/MailerConfig.php');
+			require(dirname(__FILE__) . '/../src/system/modules/mailer/Mailer.php');
+			require(dirname(__FILE__) . '/../src/system/modules/mailer/SwiftMailer.php');
+			require(dirname(__FILE__) . '/../src/system/modules/mailer/Mail.php');
 		}
 
-		require(__DIR__ . '/../src/system/modules/mailer/config/config.php');
+		require(dirname(__FILE__) . '/../src/system/modules/mailer/config/config.php');
 
 		// set some variables
 		$_SESSION['FE_DATA']                              = '';
