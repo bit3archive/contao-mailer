@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/InfinitySoft/contao-mailer.png)](http://travis-ci.org/InfinitySoft/contao-mailer)
+
 Mailer Framework for Contao
 ---------------------------
 
